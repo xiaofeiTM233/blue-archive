@@ -86,14 +86,11 @@
         </n-space>
         <n-tooltip :duration="300" placement="top-end">
           <template #trigger>
-            <div class="flex h-full flex-1 justify-end">
-              翻译风格：
-              <n-tag size="small" :type="modelStabilityLevel.type">{{
-                modelStabilityLevel.value
-              }}</n-tag>
-            </div>
+            <n-tag size="small" :type="modelStabilityLevel.type">风格：{{
+              modelStabilityLevel.value
+            }}</n-tag>
           </template>
-          <span>翻译结果随机性，值越小花活越多</span>
+          <span>翻译结果自由度，值越小花活越多</span>
           <n-slider
             v-model:value="modelStability"
             :max="1"
