@@ -404,8 +404,6 @@ onDeactivated(() => {
     );
   });
   stop();
-  window.removeEventListener("blur", notifyWindowBlur);
-  window.removeEventListener("focus", notifyWindowFocus);
 });
 </script>
 
@@ -432,7 +430,6 @@ onDeactivated(() => {
           :player-height="playerHeight"
           :player-width="playerWidth"
           :style="{ width: `${playerWidth}px` }"
-          @click="forceSetWindowFocus"
         >
         </BaDialog>
       </div>
