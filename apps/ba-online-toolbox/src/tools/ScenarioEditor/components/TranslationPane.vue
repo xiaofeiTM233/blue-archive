@@ -19,7 +19,7 @@
                   }}
                 </n-tag>
               </template>
-              <n-text> 选择需要参考的语言 </n-text>
+              选择需要参考的语言
             </n-tooltip>
           </n-dropdown>
           <n-text>→</n-text>
@@ -46,7 +46,7 @@
                   }}
                 </n-tag>
               </template>
-              <n-text> 选择需要翻译的语言 </n-text>
+              选择需要翻译的语言
             </n-tooltip>
           </n-dropdown>
           <span class="text-gray-300 text-sm"
@@ -407,12 +407,14 @@ watch(selectedText.text, () => {
 function handleCopyPaste(event: KeyboardEvent) {
   if (isMac) {
     if (event.metaKey && event.altKey && event.code === "KeyV") {
+      event.preventDefault();
       mainStore.getScenario.content[config.getSelectLine][
         config.getTargetLang
       ] = currentText.value;
     }
   } else {
     if (event.ctrlKey && event.shiftKey && event.code === "KeyV") {
+      event.preventDefault();
       mainStore.getScenario.content[config.getSelectLine][
         config.getTargetLang
       ] = currentText.value;
