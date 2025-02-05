@@ -1,21 +1,16 @@
 <template>
-  <n-modal
-    v-model:show="showModal"
-    preset="dialog"
-    :style="{ width: '600px' }"
-    size="huge"
-    :bordered="false"
-    to="body"
-    positive-text="确定"
-    negative-text="取消"
-    @positive-click="handlePositiveClick"
+  <a-modal
+    @ok="handlePositiveClick"
+    @cancel="readAsMomotalk"
+    v-model:visible="showModal"
   >
-    <template #header> 检测到剧情翻译文件 </template>
-
-    您正在尝试上传一个剧情翻译文件。<br />
-    点击"确定"跳转到剧情翻译编辑器。 点击"取消"，我们将会尝试将文件作为 MomoTalk
-    文件处理。
-  </n-modal>
+    <template #title> 检测到剧情翻译文件 </template>
+    <div>
+      您正在尝试上传一个剧情翻译文件。<br />
+      点击"确定"跳转到剧情翻译编辑器。 <br />
+      点击"取消"，我们将会尝试将文件作为 MomoTalk 文件处理。<br />
+    </div>
+  </a-modal>
   <div
     class="flex flex-col items-center justify-center relative flex-1 w-screen h-screen select-none"
     @drop="handleFileDrop"
@@ -61,11 +56,12 @@
 </template>
 <script setup lang="ts">
 import jsYaml from "js-yaml";
-import { ref, computed } from "vue";
+import { ref } from "vue";
 import { Scenario } from "../../ScenarioEditor/types/content";
 import type { FileContent } from "../types/Momotalks";
 import { momotalkEditorStore } from "../store/momotalkEditorStore";
 import { useRouter } from "vue-router";
+import { Message } from "@arco-design/web-vue";
 
 const router = useRouter();
 
@@ -110,6 +106,29 @@ enum FileType {
   Momotalk = 1,
 }
 
+function checkMomotalkFileValidity(content: any) {
+  if (
+    content.title &&
+    content.title?.length > 0 &&
+    content.content &&
+    content.content?.length > 0
+  ) {
+    return true;
+  }
+  return false;
+}
+
+function readAsMomotalk() {
+  // 检测是否有 title，content 键
+  if (checkMomotalkFileValidity(tempScenarioData.value)) {
+    useMomotalkEditorStore.setMomotalkFileData(
+      tempScenarioData.value as unknown as FileContent
+    );
+  } else {
+    Message.error("文件不是有效的 MomoTalk 数据文件");
+  }
+}
+
 function handleFile(file: File) {
   filePreProcessor(file).then(result => {
     if (result.type === FileType.Scenario) {
@@ -117,7 +136,15 @@ function handleFile(file: File) {
       showModal.value = true;
     } else {
       tempMomotalkData.value = result.content as FileContent;
-      useMomotalkEditorStore.setMomotalkFileData(tempMomotalkData.value);
+      if (checkMomotalkFileValidity(tempMomotalkData.value)) {
+        useMomotalkEditorStore.setMomotalkFileData(tempMomotalkData.value);
+        useMomotalkEditorStore.setFilename(file.name);
+        if (inferProofread()) {
+          useMomotalkEditorStore.setProofreaderMode(true);
+        }
+      } else {
+        Message.error("文件不是有效的 MomoTalk 数据文件");
+      }
     }
   });
 }
@@ -137,7 +164,7 @@ function filePreProcessor(file: File): Promise<{
           content: parsed,
         };
       } catch (e) {
-        throw new Error("文件已损坏");
+        throw new Error("文件已损坏，请联系管理员处理");
       }
     });
   } else {
@@ -149,26 +176,42 @@ function filePreProcessor(file: File): Promise<{
           content: parsed,
         };
       } catch (e) {
-        throw new Error("文件已损坏");
+        throw new Error("文件已损坏，请联系管理员处理");
       }
     });
   }
 }
 
-function inferProofread(content: any, fileName: string): boolean {
+function inferProofread(): boolean {
+  const fileName = useMomotalkEditorStore.getFilename ?? "";
+  const content = useMomotalkEditorStore.getMomotalkFileData ?? {};
   // 根据内容，推断是否进入校对模式
-  // 去除后缀后的文件名包含"未校对"，返回 true
-  // Unit 中某一条目的 unsure flag 为 true，返回 true
-  // Unit 中 TextCn 有内容的条目占比超过 95%，返回 true
+  // 去除后缀的文件名包含"已翻"，返回 true
+  // title / content 中某一条目的 unsure flag 为 true，返回 true
+  // title / content 中 TextCn / MessageCN 有内容的条目占比超过 90%，返回 true
   // 否则返回 false
   const fileNameWithoutSuffix = fileName.replace(/\.[^/.]+$/, "");
-  if (fileNameWithoutSuffix.includes("未校对")) {
+  if (fileNameWithoutSuffix.includes("已翻")) {
     return true;
   }
-  const scenarioUnits = content.content;
-  const unsureCount = scenarioUnits.filter((unit: any) => unit.Unsure).length;
-  const textCnCount = scenarioUnits.filter((unit: any) => unit.TextCn).length;
-  if (unsureCount > 0 || textCnCount / scenarioUnits.length > 0.95) {
+  // @ts-expect-error
+  if (!content || !content.title || !content.content) {
+    return false;
+  }
+  // @ts-ignore
+  const titleUnits = content.title;
+  // @ts-ignore
+  const messageUnits = content.content;
+  const merged = [...titleUnits, ...messageUnits];
+  const unsureCount = merged.filter((unit: any) => unit.unsure).length;
+  if (unsureCount > 0) {
+    return true;
+  }
+  
+  const textCnCount = titleUnits.filter(unit => unit.TextCn).length;
+  const messageCnCount = messageUnits.filter(unit => unit.MessageCN || !unit.ImagePath).length;
+
+  if (textCnCount + messageCnCount > merged.length * 0.9) {
     return true;
   }
   return false;
@@ -197,11 +240,17 @@ function handleImportData() {
 
   if (oldData) {
     try {
+      useMomotalkEditorStore.reset();
       const newData = JSON.parse(oldData);
       useMomotalkEditorStore.setMomotalkFileData(newData.fileContent);
+      if (inferProofread()) {
+        useMomotalkEditorStore.setProofreaderMode(true);
+      }
     } catch (e) {
       alert("错误：" + e);
     }
+  } else {
+    Message.info("没有找到旧版翻译数据");
   }
 }
 </script>
