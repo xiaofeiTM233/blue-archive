@@ -16,21 +16,7 @@ const links: FriendLink[] = [
     description: "更新公告等内容发布",
   },
   {
-    title: "碧蓝档案资讯站",
-    url: "https://space.bilibili.com/37507923",
-    logo: "/image/contributor/zixunzhan.webp",
-    logoDescription: "资讯站logo",
-    description: "为玩家服务的民间组织，尊重官方设定",
-  },
-  {
-    title: "Gamekee wiki",
-    url: "https://www.gamekee.com/ba/",
-    logo: "/image/contributor/xwhlogo2.webp",
-    logoDescription: "校委会 logo",
-    description: "碧蓝档案中文Wiki站，提供攻略、资讯、图鉴等服务",
-  },
-  {
-    title: "项目仓库",
+    title: "原项目仓库",
     url: "https://github.com/ba-archive/blue-archive",
     logo: "/image/contributor/github-logo.svg",
     logoDescription: "GitHub logo",
@@ -38,11 +24,11 @@ const links: FriendLink[] = [
     description: "欢迎前端、美术、Unity等同学加入",
   },
   {
-    title: "CloudFlare",
-    url: "https://www.cloudflare.com/",
-    logo: "/image/contributor/cloudflare.svg",
-    logoDescription: "CloudFlare logo",
-    description: "为本站提供 CDN 服务",
+    title: "本镜像仓库",
+    url: "https://github.com/xiaofeiTM233/blue-archive",
+    logo: "/image/contributor/github-logo.svg",
+    logoDescription: "GitHub logo",
+    description: "镜像所在仓库",
   },
 ];
 </script>
