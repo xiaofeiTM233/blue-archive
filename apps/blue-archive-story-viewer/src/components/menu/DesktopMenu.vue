@@ -45,10 +45,10 @@
     <div id="settings">
       <language-selector :style="{ gridArea: 'language' }" />
       <theme-switcher :style="{ gridArea: 'theme' }" />
-      <div class="sponsor-message">
+      <!--div class="sponsor-message">
         Served with
         <a href="https://cloudflare.com" target="_blank">Cloudflare</a>
-      </div>
+      </div-->
     </div>
   </div>
 </template>
