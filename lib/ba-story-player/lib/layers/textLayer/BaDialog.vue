@@ -12,7 +12,7 @@
       class="container-inner"
       :class="{ 'prevent-interact': preventInteract }"
     >
-      <div class="loading-container absolute-container" v-if="showLoading">
+      <div v-if="showLoading" class="loading-container absolute-container">
         <img
           class="loading-image"
           :src="loadingImageSrc"
@@ -21,8 +21,8 @@
         <div class="loading-log">
           <div
             v-for="(e, index) in mapLoadLog"
-            class="loading-log-item"
             :key="index"
+            class="loading-log-item"
           >
             <span v-if="e.type === 'success'" class="loading-log-item-success">
               加载资源:{{ e.resourceName }}
@@ -34,17 +34,45 @@
         </div>
       </div>
       <div
+        v-if="showNextEpisode"
         ref="nextEpisodeContainer"
         class="next-episode-container absolute-container"
         @click="endPlay"
-        v-if="showNextEpisode"
       >
         <div class="next-episode-cover" />
         <div class="next-episode-cover" />
       </div>
       <div
-        class="to-be-continued-container absolute-container"
+        v-if="showEnding"
+        ref="endingRoot"
+        class="ending-container absolute-container"
+      >
+        <div ref="endingBlur" class="ending-blur" />
+        <div
+          ref="endingTitle"
+          class="ending-title"
+          :style="{ fontSize: `${endingTitleFontSize}rem` }"
+        >
+          {{ endingTitleText }}
+        </div>
+        <div class="ending-stamp-wrap">
+          <div ref="endingRing" class="ending-ring" />
+          <img
+            ref="endingStamp"
+            class="ending-stamp"
+            :src="endingStampSrc"
+            alt=""
+          />
+        </div>
+        <div ref="endingLetterTop" class="ending-letterbox ending-letterbox-top" />
+        <div
+          ref="endingLetterBottom"
+          class="ending-letterbox ending-letterbox-bottom"
+        />
+      </div>
+      <div
         v-if="showToBeContinue"
+        class="to-be-continued-container absolute-container"
       >
         <div ref="toBeContinuedBg0" class="to-be-continued-bg0" />
         <div ref="toBeContinuedBg1" class="to-be-continued-bg1" />
@@ -57,28 +85,36 @@
         </div>
       </div>
       <div
-        class="image-video-container absolute-container"
+        v-if="showAfterBattle"
+        ref="afterBattleOverlay"
+        class="after-battle-container absolute-container"
+      >
+        <p ref="afterBattleText" class="after-battle-text">{{ afterBattleLabel }}</p>
+      </div>
+      <div
         v-if="popupSrc.image || popupSrc.video"
+        class="image-video-container absolute-container"
       >
         <div class="image-video-container-inner">
           <div
+            v-if="popupSrc.image"
             class="image-container absolute-container"
             :style="{ height: `${playerHeight - dialogHeight}px` }"
-            v-if="popupSrc.image"
           >
             <img :src="popupSrc.image" alt="完了加载失败了" class="image" />
           </div>
           <VideoBackground
+            v-if="popupSrc.video"
             ref="videoComponent"
             :src="popupSrc.video"
             objectFit="contain"
             style="width: 100%; height: 100%"
-            v-if="popupSrc.video"
             @ended="onPopupVideoEnd"
           />
         </div>
       </div>
       <div
+        v-if="stText.length > 0"
         class="st-container absolute-container"
         :style="{
           '--st-width-half': `${stWidth / 2}`,
@@ -87,19 +123,18 @@
           '--st-pos-bounds-y': `${stPositionBounds.height}`,
         }"
         @click="onStContainerClick"
-        v-if="stText.length > 0"
       >
         <StUnit
           v-for="(e, index) in stText"
+          :key="index"
           :index="String(index)"
           :config="e"
-          :key="index"
           :base-index="index"
         />
       </div>
       <div
-        class="st-tooltip-container absolute-container"
         v-if="stToolTip.length > 0 && stText.length > 0"
+        class="st-tooltip-container absolute-container"
       >
         <div v-for="(e, index) in stToolTip" :key="index" class="tooltip">
           <span>[{{ index + 1 }}]{{ e[0] }}:</span>
@@ -107,10 +142,10 @@
         </div>
       </div>
       <div
+        v-if="titleText.length"
         ref="titleEL"
         class="title-container absolute-container"
         :style="overrideTitleStyle"
-        v-if="titleText.length"
       >
         <div
           class="title-border"
@@ -126,14 +161,14 @@
             :style="{ '--font-size': `${fontSize(4)}rem` }"
             :data-translator="titleTranslatorContent"
           >
-            <div class="sub-title" v-if="subTitleContent">
+            <div v-if="subTitleContent" class="sub-title">
               <span class="sub-title-inner">{{ subTitleContent }}</span>
             </div>
             <div class="main-title">
               <TypingUnit
                 v-for="(e, index) in titleText"
-                :index="'title-' + index"
                 :key="index"
+                :index="'title-' + index"
                 :text="e"
                 instant
                 title
@@ -143,20 +178,20 @@
         </div>
       </div>
       <div
+        v-if="placeContent"
         ref="placeEL"
         class="place-container"
         :style="{ '--font-size': `${fontSize(2)}rem` }"
-        v-if="placeContent"
       >
         <div class="round-place">
           <span class="place-content">{{ placeContent }}</span>
         </div>
       </div>
       <div
+        v-if="placeTranslatorContent"
         ref="placeTranslatorEL"
         class="place-translator-container place-container"
         :style="{ '--font-size': `${fontSize(2) * 0.6}rem` }"
-        v-if="placeTranslatorContent"
       >
         <div class="round-place">
           <span class="place-content">{{ placeTranslatorContent }}</span>
@@ -164,6 +199,7 @@
       </div>
       <div
         v-if="showDialog"
+        ref="TextDialog"
         :style="{
           padding: `0 ${fontSize(8)}rem ${fontSize(3)}rem`,
           height: `${dialogHeight}px`,
@@ -171,9 +207,8 @@
           '--text-dialog-width': textDialogWidth,
         }"
         class="dialog"
-        ref="TextDialog"
       >
-        <div class="inner-dialog" id="player__text_inner_dialog">
+        <div id="player__text_inner_dialog" class="inner-dialog">
           <div class="title">
             <span :style="{ '--fs': `${fontSize(3.5)}rem` }" class="name">{{
               name ? name : "&emsp;"
@@ -186,14 +221,14 @@
           <div class="content">
             <TypingUnit
               v-for="(e, index) in dialogText"
-              :index="String(index)"
               :key="index"
+              :index="String(index)"
               :text="e"
               :speed="state.playing.value.typingSpeed"
               @unit-click="simulateUiClick"
             />
           </div>
-          <div class="next-image-btn" v-if="typingComplete">&zwj;</div>
+          <div v-if="typingComplete" class="next-image-btn">&zwj;</div>
         </div>
       </div>
     </div>
@@ -217,6 +252,7 @@ import {
 import VideoBackground from "vue-responsive-video-background-player";
 import TypingUnit from "./components/TypingUnit.vue";
 import TypingEmitter from "./utils/typingEmitter";
+import { calcEndingTitleFontSizeRem } from "./utils/endingTitleFont";
 import StUnit from "@/layers/textLayer/components/StUnit.vue";
 import { useUiState } from "@/stores/state";
 import { Text } from "@/types/common";
@@ -228,8 +264,11 @@ import {
   StText,
 } from "@/types/events";
 import { useThrottleFn } from "@vueuse/core";
+import { getUiI18n } from "@/layers/uiLayer/utils";
 
 const state = useUiState();
+const endingStampSrc = "/stamp.svg";
+const endingSoundSrc = "/stamp.ogg";
 const textDialogWidth = ref(0);
 const TextDialog = ref<HTMLElement>() as Ref<HTMLElement>; // 文本框长度, 用于计算tooltip最大位置
 const toBeContinuedBg0 = ref<HTMLElement>(); // to be continued的背景
@@ -294,6 +333,40 @@ const showLoading = ref<boolean>(false);
 const showToBeContinue = ref<boolean>(false);
 // 显示next episode
 const showNextEpisode = ref<boolean>(false);
+const showEnding = ref<boolean>(false);
+// 显示ending
+const endingTitleText = ref("");
+const endingTitleFontSize = ref(1.85);
+const endingRoot = ref<HTMLElement>();
+const endingBlur = ref<HTMLElement>();
+const endingTitle = ref<HTMLElement>();
+const endingStamp = ref<HTMLImageElement>();
+const endingRing = ref<HTMLElement>();
+const endingLetterTop = ref<HTMLElement>();
+const endingLetterBottom = ref<HTMLElement>();
+let endingTimeline: gsap.core.Timeline | null = null;
+// 战斗后过渡
+const showAfterBattle = ref<boolean>(false);
+const afterBattleOverlay = ref<HTMLElement>();
+const afterBattleText = ref<HTMLElement>();
+const afterBattleLabel = computed(() => getUiI18n("after-battle", usePlayerStore().language));
+let afterBattleHolding = false;
+let afterBattleTimeline: gsap.core.Timeline | null = null;
+let afterBattleSessionId = 0;
+
+function resetAfterBattleState() {
+  afterBattleSessionId += 1;
+  afterBattleTimeline?.kill();
+  afterBattleTimeline = null;
+  afterBattleHolding = false;
+  if (afterBattleOverlay.value) {
+    gsap.killTweensOf(afterBattleOverlay.value);
+  }
+  if (afterBattleText.value) {
+    gsap.killTweensOf(afterBattleText.value);
+  }
+  showAfterBattle.value = false;
+}
 const popupSrc = reactive({
   // image: "https://yuuka.diyigemt.com/image/full-extra/output/media/UIs/03_Scenario/04_ScenarioImage/popup49.png",
   // video: "https://yuuka.diyigemt.com/image/full-extra/output/media/Video/pv-v.mp4"
@@ -619,9 +692,105 @@ function handleNextEpisode(e: ShowTitleOption) {
         },
         "<"
       )
+      .to({}, { duration: 2.5 })
       .then(() => {
         eventBus.emit("nextEpisodeDone");
       });
+  });
+}
+
+/**
+ * Ending stamp: blur → title → stamp/ring impact → letterbox.
+ */
+function handleEnding(e: ShowTitleOption) {
+  hideMenu();
+  endingTimeline?.kill();
+  endingTitleText.value = (e.title || []).map(unit => unit.content).join("") || e.subtitle || "";
+  endingTitleFontSize.value = calcEndingTitleFontSizeRem(endingTitleText.value);
+  showEnding.value = true;
+
+  nextTick(() => {
+    const blur = endingBlur.value;
+    const title = endingTitle.value;
+    const stamp = endingStamp.value;
+    const ring = endingRing.value;
+    const topBar = endingLetterTop.value;
+    const bottomBar = endingLetterBottom.value;
+    if (!blur || !title || !stamp || !ring || !topBar || !bottomBar) {
+      eventBus.emit("endingDone");
+      return;
+    }
+
+    gsap.set([blur, title, stamp, ring], { opacity: 0 });
+    gsap.set(stamp, { scale: 2 });
+    gsap.set(ring, { scale: 2.4 });
+    gsap.set(topBar, { translateY: "-100%" });
+    gsap.set(bottomBar, { translateY: "100%" });
+
+    endingTimeline = gsap
+      .timeline({
+        onComplete: () => eventBus.emit("endingDone"),
+      })
+      // 0. Blur 0–0.5s
+      .to(blur, { opacity: 1, duration: 0.5, ease: "power2.out" }, 0)
+      // 1. Title ~0.8s
+      .to(title, { opacity: 1, duration: 0.25, ease: "power2.out" }, 0.8)
+      // stamp sound
+      .call(() => eventBus.emit("playAudio", { soundUrl: endingSoundSrc }), undefined, 0.58)
+      // Stamp 1.50–1.82
+      .to(stamp, { scale: 1, opacity: 1, duration: 0.32, ease: "power3.out" }, 1.5)
+      // Ring starts slightly after stamp, finishes after stamp settles
+      .to(ring, { scale: 1, opacity: 0.85, duration: 0.4, ease: "power2.out" }, 1.53)
+      // Impact squash 1.70–1.88
+      .to(stamp, { scale: 0.93, duration: 0.1, ease: "power2.out" }, 1.7)
+      .to(stamp, { scale: 1, duration: 0.08, ease: "power2.out" }, 1.8)
+      // Letterbox 3.75–4.0
+      .to(topBar, { translateY: 0, duration: 0.25, ease: "power2.inOut" }, 3.75)
+      .to(bottomBar, { translateY: 0, duration: 0.25, ease: "power2.inOut" }, 3.75);
+  });
+}
+
+function handleAfterBattle() {
+  resetAfterBattleState();
+  hideMenu();
+  showAfterBattle.value = true;
+  const sessionId = afterBattleSessionId;
+  nextTick(() => {
+    const overlay = afterBattleOverlay.value as HTMLElement;
+    const text = afterBattleText.value as HTMLElement;
+    const timeline = gsap.timeline();
+    afterBattleTimeline = timeline;
+    timeline
+      .fromTo(overlay, { opacity: 0 }, { opacity: 1, duration: 1.4, ease: "power2.inOut" })
+      .fromTo(text, { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.9, ease: "power2.out" }, "-=0.5")
+      .to({}, { duration: 2 })
+      .to(text, { opacity: 0, duration: 0.8, ease: "power2.in" })
+      .then(() => {
+        if (sessionId !== afterBattleSessionId) return;
+        afterBattleHolding = true;
+        eventBus.emit("afterBattleDone");
+      });
+  });
+}
+
+function releaseAfterBattleOverlay() {
+  if (!afterBattleHolding || !showAfterBattle.value) return;
+  const sessionId = afterBattleSessionId;
+  afterBattleHolding = false;
+  const overlay = afterBattleOverlay.value as HTMLElement | undefined;
+  if (!overlay) {
+    showAfterBattle.value = false;
+    return;
+  }
+  gsap.to(overlay, {
+    opacity: 0,
+    duration: 0.8,
+    ease: "power2.inOut",
+    onComplete() {
+      if (sessionId !== afterBattleSessionId) return;
+      showAfterBattle.value = false;
+      gsap.set(overlay, { clearProps: "opacity" });
+    },
   });
 }
 function handlePopupImage(url: string) {
@@ -781,6 +950,10 @@ onMounted(() => {
   eventBus.on("click", moveToNext);
   eventBus.on("toBeContinue", handleToBeContinued);
   eventBus.on("nextEpisode", handleNextEpisode);
+  eventBus.on("ending", handleEnding);
+  eventBus.on("afterBattle", handleAfterBattle);
+  eventBus.on("bgShown", releaseAfterBattleOverlay);
+  eventBus.on("bgOverLapDone", releaseAfterBattleOverlay);
   eventBus.on("popupImage", handlePopupImage);
   eventBus.on("popupVideo", handlePopupVideo);
   eventBus.on("hidePopup", handlePopupClose);
@@ -789,6 +962,9 @@ onMounted(() => {
   eventBus.on("loaded", handleEndLoading);
 });
 onUnmounted(() => {
+  resetAfterBattleState();
+  endingTimeline?.kill();
+  endingTimeline = null;
   eventBus.off("option", doPreventInteract);
   eventBus.off("select", exitPreventInteract);
   eventBus.off("resize", updateTextDialogWidth);
@@ -803,6 +979,10 @@ onUnmounted(() => {
   eventBus.off("click", moveToNext);
   eventBus.off("toBeContinue", handleToBeContinued);
   eventBus.off("nextEpisode", handleNextEpisode);
+  eventBus.off("ending", handleEnding);
+  eventBus.off("afterBattle", handleAfterBattle);
+  eventBus.off("bgShown", releaseAfterBattleOverlay);
+  eventBus.off("bgOverLapDone", releaseAfterBattleOverlay);
   eventBus.off("popupImage", handlePopupImage);
   eventBus.off("popupVideo", handlePopupVideo);
   eventBus.off("hidePopup", handlePopupClose);
@@ -835,7 +1015,9 @@ $select-z-index: 10;
 $image-video-z-index: 10;
 $to-be-continue-z-index: 200;
 $next-episode-z-index: 201;
-$loading-z-index: 202;
+$after-battle-z-index: 201;
+$ending-z-index: 202;
+$loading-z-index: 203;
 $st-z-index: 10;
 $st-tooltip-z-index: 10;
 $text-outline: -1px 0 black, 0 1px black, 1px 0 black, 0 -1px black;
@@ -1178,6 +1360,96 @@ $text-outline: -1px 0 black, 0 1px black, 1px 0 black, 0 -1px black;
   }
 }
 
+.ending-container {
+  z-index: $text-layer-z-index + $ending-z-index;
+  pointer-events: none;
+  overflow: hidden;
+
+  .ending-blur {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    background: rgb(0 0 0 / 28%);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+
+  .ending-title {
+    position: absolute;
+    right: calc(5% + clamp(60px, 15.5%, 147px) + 0.5rem);
+    left: 4%;
+    bottom: calc(8% + clamp(60px, 15.5%, 147px) * 0.5);
+    top: auto;
+    z-index: 2;
+    width: auto;
+    max-width: none;
+    opacity: 0;
+    color: #fff;
+    font-family: Arial, Helvetica, sans-serif;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    line-height: 1.25;
+    white-space: nowrap;
+    text-align: right;
+    text-shadow: $text-outline;
+  }
+
+  .ending-stamp-wrap {
+    position: absolute;
+    right: 5%;
+    bottom: 7%;
+    z-index: 2;
+    width: clamp(60px, 15.5%, 147px);
+    aspect-ratio: 1;
+    container-type: size;
+  }
+
+  .ending-ring,
+  .ending-stamp {
+    position: absolute;
+    inset: 0;
+    margin: auto;
+    transform-origin: center;
+    will-change: transform, opacity;
+  }
+
+  /* SVG outer stroke: r=180, stroke-width=16 in 512 viewBox. */
+  .ending-ring {
+    width: 70.3125%;
+    height: 70.3125%;
+    border: 3.125cqw solid #b40000; // 16/512 of stamp
+    border-radius: 50%;
+    opacity: 0;
+    box-sizing: border-box;
+  }
+
+  .ending-stamp {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    opacity: 0;
+  }
+
+  .ending-letterbox {
+    position: absolute;
+    left: 0;
+    z-index: 3;
+    width: 100%;
+    height: 50%;
+    background: #000;
+  }
+
+  .ending-letterbox-top {
+    top: 0;
+    transform: translateY(-100%);
+  }
+
+  .ending-letterbox-bottom {
+    bottom: 0;
+    transform: translateY(100%);
+  }
+}
+
 .to-be-continued-container {
   z-index: $text-layer-z-index + $to-be-continue-z-index;
   pointer-events: none;
@@ -1210,6 +1482,25 @@ $text-outline: -1px 0 black, 0 1px black, 1px 0 black, 0 -1px black;
     opacity: 0;
     color: white;
     text-shadow: $text-outline;
+  }
+}
+
+.after-battle-container {
+  z-index: $text-layer-z-index + $after-battle-z-index;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #000;
+  pointer-events: none;
+
+  .after-battle-text {
+    margin: 0;
+    color: rgba(255, 255, 255, 0.88);
+    font-size: clamp(1.1rem, 2.4vw, 1.55rem);
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    text-shadow: 0 0 24px rgba(122, 215, 255, 0.35);
+    opacity: 0;
   }
 }
 

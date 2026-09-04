@@ -60,10 +60,29 @@ const StoryRawUnitParserUnit: IStoryRawUnitParserUnit = {
       return unit;
     },
   },
+  ending: {
+    reg: /#ending(?:;[^\n]*)?;?/i,
+    fn(match: RegExpExecArray, unit: StoryUnit, rawUnit: StoryRawUnit) {
+      unit.type = "ending";
+      unit.textAbout.titleInfo = utils.generateTitleInfo(
+        rawUnit,
+        usePlayerStore().language
+      );
+      return unit;
+    },
+  },
   continued: {
     reg: /#continued;?/i,
     fn(match: RegExpExecArray, unit: StoryUnit) {
       unit.type = "continue";
+      return unit;
+    },
+  },
+  afterBattle: {
+    reg: /#afterbattle;?/i,
+    fn(match: RegExpExecArray, unit: StoryUnit) {
+      unit.type = "afterBattle";
+      unit.hide = "all";
       return unit;
     },
   },
